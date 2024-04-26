@@ -12,7 +12,7 @@ async def animate():
     animation = "|/-\\"
     idx = 0
     while animasyon:
-        sys.stdout.write("\rProxy test ediliyor... " + animation[idx % len(animation)])
+        sys.stdout.write("\rTesting Proxies... " + animation[idx % len(animation)])
         sys.stdout.flush()
         idx += 1
         await asyncio.sleep(0.1)
