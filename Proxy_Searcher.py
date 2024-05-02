@@ -61,6 +61,6 @@ async def main():
     animasyon = False
     await animation_task
     if(j==0):
-        print("\nProxy Bulunamadi")
+        print("\nCouldn't find proxy.")
 
 asyncio.run(main())
