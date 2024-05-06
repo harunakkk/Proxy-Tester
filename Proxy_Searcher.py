@@ -95,5 +95,7 @@ async def main():
     animasyon = False
     if(working_proxies_count == 0):
         print("\nCouldn't find proxy.")
+    else:
+        print(working_proxies_count + " proxies written to working_proxy_list.txt")
 
 asyncio.run(main())
