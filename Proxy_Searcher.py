@@ -27,15 +27,19 @@ async def animate():
         idx += 1
         await asyncio.sleep(0.1)
 
-async def fetch(client,site):
-    async with client.get(site) as resp:
-        assert resp.status == 200
-        return await resp.text()
+async def fetch(client, site, proxy = None):
+    try:
+        async with client.get(site, proxy=proxy) as resp:
+            assert resp.status == 200
+            return await resp.text()
+    except:
+        return None
 
 async def main():
     animation_task = asyncio.create_task(animate())
     global animasyon
     working_proxies = []
+    site_list = ["https://spys.me/proxy.txt", "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt"]
     i = 0
     working_proxies_count = 0
     cookie_jar: AbstractCookieJar = DummyCookieJar()
@@ -44,50 +48,49 @@ async def main():
             r"(?:[1-9]|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])"  # 1-255
             + r"\.(?:\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])" * 3  # 0-255
             + r"):"
-            + (
-                r"(\d|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{3}"
-                r"|65[0-4]\d{2}|655[0-2]\d|6553[0-5])"
-            )  # 0-65535
-            + r"\D{3}[\-][AH][\-][S]"
+            + 
+                r"(\b(?:[0-9]|[1-9][0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])\b)" # 0-65535
+            + r"(\D{3}[\-][AH][\-][S])?" # AH-S
         )
-    async with aiohttp.ClientSession(cookie_jar=cookie_jar) as client:
-        proxy_list = await fetch(client,site="https://spys.me/proxy.txt")
-        proxies = regex.finditer(proxy_list)
-        for i in re.findall(regex,proxy_list):
-            try:
-                proxy = next(proxies)
-            except:
-                break
-            connector = ProxyConnector(ProxyType.HTTP, host = proxy.group(1), port = proxy.group(2))
-            async with aiohttp.ClientSession(connector=connector,cookie_jar=cookie_jar) as client:
-                try:
-                    data = await fetch(client, site = 'https://google.com')
-                    data = await fetch(client, site = 'http://ip-api.com/json/?fields=status,message,country,regionName,city,isp,org,proxy,query')
-                    print("\n" + data)
-                    print(proxy.group(1))
-                    print(proxy.group(2))
-                    working_proxies.append(proxy.group(1) + ":" + proxy.group(2))
-                    working_proxies_count+=1
-                except:
-                    continue
     working_current_proxies = await read_proxy_list()
     while True:
         try:
             proxy = next(working_current_proxies)
         except:
             break
-        connector = ProxyConnector(ProxyType.HTTP, host = proxy.group(1), port = proxy.group(2))
-        async with aiohttp.ClientSession(connector=connector,cookie_jar=cookie_jar) as client:
-            try:
-                data = await fetch(client, site = 'https://google.com')
-                data = await fetch(client, site = 'http://ip-api.com/json/?fields=status,message,country,regionName,city,isp,org,proxy,query')
-                print(data)
-                print(proxy.group(1))
-                print(proxy.group(2))
-                working_proxies.append(proxy.group(0))
-                working_proxies_count+=1
-            except:
+        async with aiohttp.ClientSession(cookie_jar=cookie_jar, timeout=aiohttp.ClientTimeout(total=5)) as client:
+            data = await fetch(client, site = 'https://google.com', proxy = 'http://' + proxy.group(1) + ':' + proxy.group(2))
+            data = await fetch(client, site = 'http://ip-api.com/json/?fields=status,message,country,regionName,city,isp,org,proxy,query', proxy = 'http://' + proxy.group(0))
+            if data is None:
                 continue
+            print(data)
+            print(proxy.group(0))
+            working_proxies.append(proxy.group(0))
+            working_proxies_count+=1
+    async with aiohttp.ClientSession(cookie_jar=cookie_jar) as client:
+        for j in range(len(site_list)):
+            if (working_proxies_count>=5):
+                break
+            proxy_list = await fetch(client,site_list[j])
+            if proxy_list is None:
+                continue
+            proxies = re.finditer(regex, proxy_list)
+            for i in re.findall(regex,proxy_list):
+                try:
+                    proxy = next(proxies)
+                except:
+                    break
+                async with aiohttp.ClientSession(cookie_jar=cookie_jar, timeout=aiohttp.ClientTimeout(total=5)) as client:
+                    data = await fetch(client, site = 'https://google.com', proxy = 'http://' + proxy.group(0))
+                    data = await fetch(client, site = 'http://ip-api.com/json/?fields=status,message,country,regionName,city,isp,org,proxy,query', proxy = 'http://' + proxy.group(0))
+                    if data is None:
+                        continue
+                    print(proxy.group(0))
+                    print(data)
+                    working_proxies.append(proxy.group(0))
+                    working_proxies_count+=1
+                if (working_proxies_count>=5):
+                    break
     open("working_proxy_list.txt","w").close()
     with open("working_proxy_list.txt","w") as file:
         for i in range(len(working_proxies)):
@@ -96,6 +99,6 @@ async def main():
     if(working_proxies_count == 0):
         print("\nCouldn't find proxy.")
     else:
-        print(working_proxies_count + " proxies written to working_proxy_list.txt")
+        print("\n" + str(working_proxies_count) + " proxies written to ./working_proxy_list.txt")
 
 asyncio.run(main())
