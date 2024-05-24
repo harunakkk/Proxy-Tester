@@ -85,6 +85,9 @@ async def main():
                     data = await fetch(client, site = 'http://ip-api.com/json/?fields=status,message,country,regionName,city,isp,org,proxy,query', proxy = 'http://' + proxy.group(0))
                     if data is None:
                         continue
+                    for k in range(len(working_proxies)):
+                        if (working_proxies[k] == proxy.group(0)):
+                            continue
                     print(proxy.group(0))
                     print(data)
                     working_proxies.append(proxy.group(0))
